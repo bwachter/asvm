@@ -250,9 +250,30 @@ int main(int argc, char **argv){
 	pfd[0].fd=infifo;
 	pfd[0].events=POLLRDNORM;
 	for (;;){
+		if (waitingchilds>0){
+			int status;
+			pid_t pid;
+			cs *p;
+
+			waitingchilds--;			
+			pid=wait(&status);
+
+			for (p=cs_storage;p!=NULL;p=p->next){
+				if (p->pid==pid){
+					if (p->status!=ST_DOWN) p->status=ST_WAITUP;
+					p->endtime=time(NULL);
+					p->pid=0;
+				} 
+			}
+			if (waitingchilds>0) alarm(1);
+		}
+
+		cs_startall();
+
 		buf[0]='\0';
 		optarg[0]='\0';
 		poll(pfd, 1, -1);
+
 		if (pfd[0].revents & POLLRDNORM)  {
 			i=read(pfd[0].fd, buf, 200);
 			buf[i]='\0';
@@ -318,24 +339,5 @@ int main(int argc, char **argv){
 				break;
 			} // end switch
 		}
-
-		if (waitingchilds>0){
-			int status;
-			pid_t pid;
-			cs *p;
-
-			waitingchilds--;			
-			pid=wait(&status);
-
-			for (p=cs_storage;p!=NULL;p=p->next){
-				if (p->pid==pid){
-					if (p->status!=ST_DOWN) p->status=ST_WAITUP;
-					p->endtime=time(NULL);
-					p->pid=0;
-				} 
-			}
-		}
-
-		cs_startall();
 	} // end for
 }

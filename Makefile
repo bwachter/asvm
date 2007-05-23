@@ -12,9 +12,11 @@ CROSS=
 
 asvm: asvm.o 
 	$(DIET) $(CROSS)$(CC) -o $@ $^ $(LDFLAGS)
+	strip $@
 
 svc: svc.o
 	$(DIET) $(CROSS)$(CC) -o $@ $^ $(LDFLAGS)
+	strip $@
 
 %.o: %.c
 	$(DIET) $(CROSS)$(CC) $(CFLAGS) -c $<
