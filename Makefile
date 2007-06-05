@@ -7,16 +7,15 @@ CC?=gcc
 CFLAGS=-Wall -W -pipe -fomit-frame-pointer -Os -I../ibaard/src 
 LDFLAGS=-L../ibaard -libaard
 
-CROSS=
 #LDFLAGS=-s
 
 asvm: asvm.o 
 	$(DIET) $(CROSS)$(CC) -o $@ $^ $(LDFLAGS)
-	strip $@
+	$(CROSS)strip $@
 
 svc: svc.o
 	$(DIET) $(CROSS)$(CC) -o $@ $^ $(LDFLAGS)
-	strip $@
+	$(CROSS)strip $@
 
 %.o: %.c
 	$(DIET) $(CROSS)$(CC) $(CFLAGS) -c $<

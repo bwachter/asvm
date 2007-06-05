@@ -44,7 +44,12 @@ void cs_startall(){
 	pid_t pid;
 	for (p=cs_storage;p!=NULL;p=p->next){
 		if (p->status==ST_WAITUP){
+			logmsg(L_DEBUG, "ST", "Checking service '", p->name, "'", NULL);
 			if (p->respawn>=3 && time(NULL)-p->endtime<=60) {
+				if (p->respawn != 99) {
+					p->respawn=99;
+					logmsg(L_WARNING, "F", "Disabling service '", p->name, "' because it's respawning too fast", NULL);
+				}
 				alarm(60);
 				continue;
 			}
@@ -54,6 +59,7 @@ void cs_startall(){
 				p->respawn++;
 			}
 
+			logmsg(L_INFO, "ST", "Starting service '", p->name, "'", NULL);
 			pid=fork();
 			if (pid==0){
 				execlp(cati(SERVICEDIR, p->name, "/run", NULL), "run", (char*)NULL);
@@ -119,9 +125,13 @@ void cs_printstat(int fd, cs *key){
 		snprintf(buf, 512, "%s (%i): down %i seconds, should be up\n",
 						 key->name, key->pid, (int)time(NULL)-(int)key->endtime);
 		break;
+	case ST_DOWN:
+		snprintf(buf, 512, "%s (%i): down %i seconds\n",
+						 key->name, key->pid, (int)time(NULL)-(int)key->endtime);
+		break;
 	default:
-		snprintf(buf, 512, "%s: status: %i, pid: %i, stime: %i, etime: %i\n",
-					 key->name, key->status, key->pid, (int)key->starttime, (int)key->endtime);
+		snprintf(buf, 512, "%s (%i): %i, pid: %i, start: %i, end: %i\n",
+						 key->name, key->pid, key->status, (int)time(NULL)-(int)key->starttime, (int)time(NULL)-(int)key->endtime);
 	}
 	__writefd(fd, buf);
 }
@@ -153,7 +163,7 @@ int cs_additem(cs *key){
 		while (p->next != NULL) p=p->next;
 
 		if ((p->next=malloc(sizeof(cs))) == NULL) {
-			//logmsg(L_ERROR, F_AUTHINFO, "unable to malloc() memory for new authinfo element", NULL);
+			logmsg(L_ERROR, "AD", "unable to malloc() memory for new authinfo element", NULL);
 			return -1;
 		}
 		key->starttime=time(NULL);
@@ -222,6 +232,7 @@ int main(int argc, char **argv){
 	int infifo, outfifo;
 	cs cskey, *csresult=NULL;
 
+	loglevel(4);
 	readservices();
 	cs_startall();
 
@@ -250,14 +261,16 @@ int main(int argc, char **argv){
 	pfd[0].fd=infifo;
 	pfd[0].events=POLLRDNORM;
 	for (;;){
+	g_waitingchilds:
 		if (waitingchilds>0){
 			int status;
 			pid_t pid;
 			cs *p;
 
-			waitingchilds--;			
 			pid=wait(&status);
+			waitingchilds--;			
 
+			printf("Waiting childs: %i\n", waitingchilds);
 			for (p=cs_storage;p!=NULL;p=p->next){
 				if (p->pid==pid){
 					if (p->status!=ST_DOWN) p->status=ST_WAITUP;
@@ -265,7 +278,7 @@ int main(int argc, char **argv){
 					p->pid=0;
 				} 
 			}
-			if (waitingchilds>0) alarm(1);
+			if (waitingchilds>0) goto g_waitingchilds;
 		}
 
 		cs_startall();
@@ -281,7 +294,6 @@ int main(int argc, char **argv){
 			if (i>3) {
 				strncpy(optarg, buf+2, i-3);
 				optarg[i-3]='\0';
-				printf("optarg: %s\n", optarg);
 			}
 
 			switch(buf[0]){
@@ -297,7 +309,7 @@ int main(int argc, char **argv){
 				strcpy(cskey.name, optarg);
 				if (!cs_find(cskey, &csresult)){
 					printf("enabling %s\n", cskey.name);
-					__writefd(outfifo, cati("+ Service ", cskey.name, " enabled\n", NULL)); 
+					__writefd(outfifo, cati("+ Service ", cskey.name, " disabled\n", NULL)); 
 					csresult->status=ST_DOWN;
 					if (csresult->pid!=0) kill(csresult->pid, SIGTERM);
 				} else __writefd(outfifo, cati("- Service ", cskey.name, " not found\n", NULL)); 
@@ -331,6 +343,7 @@ int main(int argc, char **argv){
 						memset(&cskey, 0, sizeof(cs));
 						strcpy(cskey.name, optarg);
 						if (!cs_find(cskey, &csresult)) cs_printstat(outfifo, csresult);
+						else __writefd(outfifo, cati("- Service ", cskey.name, " not found\n", NULL)); 
 					}
 				}
 				break;
