@@ -8,12 +8,14 @@ CFLAGS=-Wall -W -pipe -fomit-frame-pointer -Os -I../ibaard/src
 LDFLAGS=-L../ibaard -libaard
 
 #LDFLAGS=-s
+version.h:
+	echo "#define VERSION \"`date +%Y%m%d`\"" > version.h
 
-asvm: asvm.o 
+asvm: version.h asvm.o 
 	$(DIET) $(CROSS)$(CC) -o $@ $^ $(LDFLAGS)
 	$(CROSS)strip $@
 
-svc: svc.o
+svc: version.h svc.o
 	$(DIET) $(CROSS)$(CC) -o $@ $^ $(LDFLAGS)
 	$(CROSS)strip $@
 
@@ -22,7 +24,7 @@ svc: svc.o
 
 .PHONY: all clean install
 clean:
-	rm -f *.o $(ALL)
+	rm -f *.o $(ALL) version.h
 
 install:
 	install -m 755 asvm $(DESTDIR)/usr/sbin

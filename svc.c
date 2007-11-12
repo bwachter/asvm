@@ -15,6 +15,7 @@
 #include <ibaard.h>
 
 #include "config.h"
+#include "version.h"
 
 void rwcon(char *action){
 	int infifo, outfifo, i;
@@ -33,6 +34,12 @@ void rwcon(char *action){
 	}
 }
 
+void usage(){
+	__write2(cati("asvm build ", VERSION, "\n\n",
+			"Usage: ",
+			NULL));
+}
+
 int main(int argc, char **argv){
 	int c;
 
@@ -45,7 +52,7 @@ int main(int argc, char **argv){
 		return 0;
 	}
 
-	while ((c=getopt(argc, argv, "a:c:d:h:i:k:o:p:s:t:u:")) != EOF){
+	while ((c=getopt(argc, argv, "a:c:d:h:i:k:o:p:s:t:u:v")) != EOF){
 		switch(c){
 		case 'a':
 			rwcon(cati("A ", optarg, "\n", NULL));
@@ -79,6 +86,9 @@ int main(int argc, char **argv){
 			break;
 		case 'u':
 			rwcon(cati("U ", optarg, "\n", NULL));
+			break;
+		case 'v':
+			usage();
 			break;
 		}
 	}
