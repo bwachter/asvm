@@ -29,5 +29,5 @@ clean:
 install:
 	install -m 755 asvm $(DESTDIR)/usr/sbin
 	install -m 755 svc $(DESTDIR)/usr/bin
-	ln -s $(DESTDIR)/usr/bin/svc $(DESTDIR)/usr/bin/svstat
-	ln -s $(DESTDIR)/usr/bin/svc $(DESTDIR)/usr/bin/svok
+	ln -f -s $(DESTDIR)/usr/bin/svc $(DESTDIR)/usr/bin/svstat
+	ln -f -s $(DESTDIR)/usr/bin/svc $(DESTDIR)/usr/bin/svok

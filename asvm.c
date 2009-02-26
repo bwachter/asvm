@@ -130,7 +130,7 @@ void cs_printstat(int fd, cs *key){
 						 key->name, key->pid, (int)time(NULL)-(int)key->endtime);
 		break;
 	default:
-		snprintf(buf, 512, "%s (%i): %i, pid: %i, start: %i, end: %i\n",
+		snprintf(buf, 512, "%s (%i): %i, start: %i, end: %i\n",
 						 key->name, key->pid, key->status, (int)time(NULL)-(int)key->starttime, (int)time(NULL)-(int)key->endtime);
 	}
 	__writefd(fd, buf);
@@ -299,9 +299,11 @@ int main(int argc, char **argv){
 			switch(buf[0]){
 			case 'A':
 				cs_signal(optarg, SIGALRM);
+				__writefd(outfifo, cati("\n", NULL));
 				break;
 			case 'C':
 				cs_signal(optarg, SIGCONT);
+				__writefd(outfifo, cati("\n", NULL));
 				break;
 			case 'D':
 				if (optarg==NULL) break;
@@ -316,15 +318,19 @@ int main(int argc, char **argv){
 				break;
 			case 'H':
 				cs_signal(optarg, SIGHUP);
+				__writefd(outfifo, cati("\n", NULL));
 				break;
 			case 'I':
 				cs_signal(optarg, SIGINT);
+				__writefd(outfifo, cati("\n", NULL));
 				break;
 			case 'K':
 				cs_signal(optarg, SIGKILL);
+				__writefd(outfifo, cati("\n", NULL));
 				break;
 			case 'P':
 				cs_signal(optarg, SIGSTOP);
+				__writefd(outfifo, cati("\n", NULL));
 				break;
 			case 'U': // bring service up
 				if (optarg==NULL) break;
@@ -349,6 +355,7 @@ int main(int argc, char **argv){
 				break;
 			case 'T':
 				cs_signal(optarg, SIGTERM);
+				__writefd(outfifo, cati("\n", NULL));
 				break;
 			} // end switch
 		}

@@ -1,0 +1,4 @@
+*.o
+asvm
+svc
+version.h
