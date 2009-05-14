@@ -74,6 +74,29 @@ void cs_startall(){
   }
 }
 
+void cs_killall(){
+  cs *p;
+
+  for (p=cs_storage;p!=NULL;p=p->next){
+    if (p->status==ST_UP) {
+      logmsg(L_INFO, "ST", "Trying to kill service '", p->name, "'", NULL);
+      p->status=ST_DOWN;
+      kill(p->pid, SIGTERM);
+    }
+  }
+}
+
+int cs_upcount(){
+  cs *p;
+  int cnt=0;
+
+  for (p=cs_storage;p!=NULL;p=p->next){
+    if (p->status==ST_UP) cnt++;
+  }
+
+  return cnt;
+}
+
 int cs_find(cs key, cs **result){
   cs *p;
 
@@ -126,7 +149,7 @@ void cs_printstat(int fd, cs *key){
                key->name, key->pid, (int)time(NULL)-(int)key->endtime);
       break;
     case ST_DOWN:
-      snprintf(buf, 512, "%s (%i): down %i seconds\n",
+      snprintf(buf, 512, "%s (%i): disabled since %i seconds\n",
                key->name, key->pid, (int)time(NULL)-(int)key->endtime);
       break;
     default:
@@ -163,7 +186,7 @@ int cs_additem(cs *key){
     while (p->next != NULL) p=p->next;
 
     if ((p->next=malloc(sizeof(cs))) == NULL) {
-      logmsg(L_ERROR, "AD", "unable to malloc() memory for new authinfo element", NULL);
+      logmsg(L_ERROR, "AD", "unable to malloc() memory for new service", NULL);
       return -1;
     }
     key->starttime=time(NULL);
@@ -205,6 +228,7 @@ int readservices(){
     if (tf(cati(SERVICEDIR, temp->d_name, "/run", NULL))) continue;
     
     memset(&cskey, 0, sizeof(cs));
+    cskey.endtime=time(NULL);
     if (!tf(cati(SERVICEDIR, temp->d_name, "/noauto", NULL))) cskey.status=ST_DOWN;
     else cskey.status=ST_WAITUP;
     strcpy(cskey.name, temp->d_name);
@@ -218,6 +242,7 @@ int addservice(char* service){
 
   if (!tf(cati(SERVICEDIR, service, "/run", NULL))){
     memset(&cskey, 0, sizeof(cs));
+    cskey.endtime=time(NULL);
     cskey.status=ST_DOWN;
     strcpy(cskey.name, service);
     cs_additem(&cskey);
@@ -234,10 +259,9 @@ void sighandle_alarm(){
   //cs_startall();
 }
 
-/*
-  int sighandle_term(){
-  }
-*/
+void sighandle_term(){
+  cs_killall();
+}
 
 int main(int argc, char **argv){
   (void) argc;
@@ -266,7 +290,7 @@ int main(int argc, char **argv){
 
   signal(SIGCHLD, sighandle_child);
   signal(SIGALRM, sighandle_alarm);
-  //signal(SIGTERM, sighandle_term);
+  signal(SIGTERM, sighandle_term);
 
   struct  pollfd pfd[0];
   char buf[255], optarg[254];
@@ -370,9 +394,10 @@ int main(int argc, char **argv){
           break;
         case 'S': // get service status
           if (optarg!=NULL){
-            if (!strncmp(optarg, "*", 1))
+            if (!strncmp(optarg, "*", 1)) {
               cs_dumpall();
-            else {
+              __writefd(outfifo, cati("\n", NULL));
+            } else {
               memset(&cskey, 0, sizeof(cs));
               strcpy(cskey.name, optarg);
               if (!cs_find(cskey, &csresult)) cs_printstat(outfifo, csresult);
@@ -383,6 +408,11 @@ int main(int argc, char **argv){
         case 'T':
           cs_signal(optarg, SIGTERM);
           __writefd(outfifo, cati("\n", NULL));
+          break;
+        case 'X':
+          cs_killall();
+          __writefd(outfifo, cati("Shutting down asvm.\n", NULL));
+          exit(0);
           break;
         default:
           __writefd(outfifo, cati("Unknown command: ", buf, "\n", NULL));
