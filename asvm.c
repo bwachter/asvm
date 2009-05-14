@@ -213,6 +213,19 @@ int readservices(){
   return 0; // FIXME
 }
 
+int addservice(char* service){
+  cs cskey;
+
+  if (!tf(cati(SERVICEDIR, service, "/run", NULL))){
+    memset(&cskey, 0, sizeof(cs));
+    cskey.status=ST_DOWN;
+    strcpy(cskey.name, service);
+    cs_additem(&cskey);
+    return 0;
+  }
+  return -1;
+}
+
 void sighandle_child(){
   waitingchilds++;
 }
@@ -328,6 +341,20 @@ int main(int argc, char **argv){
           cs_signal(optarg, SIGKILL);
           __writefd(outfifo, cati("\n", NULL));
           break;
+        case 'N':
+          // add a new service
+          if (optarg==NULL) break;
+          memset(&cskey, 0, sizeof(cs));
+          strcpy(cskey.name, optarg);
+          if (!cs_find(cskey, &csresult)) {
+            __writefd(outfifo, cati("e Service ", optarg, " already exists\n", NULL));
+            break;
+          }
+          if (addservice(optarg)==0)
+            __writefd(outfifo, cati("e Service ", optarg, " added\n", NULL));
+          else
+            __writefd(outfifo, cati("e Service ", optarg, " could not be added\n", NULL));
+          break;
         case 'P':
           cs_signal(optarg, SIGSTOP);
           __writefd(outfifo, cati("\n", NULL));
@@ -357,6 +384,8 @@ int main(int argc, char **argv){
           cs_signal(optarg, SIGTERM);
           __writefd(outfifo, cati("\n", NULL));
           break;
+        default:
+          __writefd(outfifo, cati("Unknown command: ", buf, "\n", NULL));
       } // end switch
     }
   } // end for
