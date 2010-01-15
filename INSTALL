@@ -1,0 +1,40 @@
+INSTALL
+-------
+
+The current version of aardmail relies on libaard. An appropriate
+version is included as a git submodule, which you can initialize
+by executing the following command within the source directory:
+
+    git submodule update --init
+
+If you already got the initialized submodule, but would like to
+jump to a newer release execute the above command without the --init
+
+If you're building from a release tarball a version of libaard is
+already included.
+
+Now have a look at config.h. This file includes configurations for
+the location of fifos and service directories. Adjust if required.
+
+You can now start the build process by just typing `make'. This will
+build both libibaard and the asvm programs. You can influence the
+build process by setting some variables:
+
+Q: Set to empty for verbose build
+CC: C-compiler, if not cc
+CROSS: Prefix for cross toolchain
+DIET: diet wrapper
+
+For example, `make Q= CROSS=arm-linux-' will do a verbose build for
+Linux/ARM. All variables are passed through to libibaard, of course.
+
+You can install the programs by typing `make install'. You can set a
+installation prefix with DESTDIR. Installed programs are:
+
+$(DESTDIR)/usr/sbin/asvm
+$(DESTDIR)/usr/bin/svc
+$(DESTDIR)/usr/bin/svok -> svc
+$(DESTDIR)/usr/bin/svstat -> svc
+
+Links to svok/svstat are provided in case you're using asvm as drop-in
+replacement for djbs daemontools.
