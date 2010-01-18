@@ -4,7 +4,7 @@ all: $(ALL)
 
 #DIET?=/opt/diet/bin/diet
 CC?=cc
-CFLAGS=-Wall -W -pipe -fomit-frame-pointer -Os -Iibaard/src
+CFLAGS=-std=c99 -Wall -W -pipe -fomit-frame-pointer -Os -Iibaard/src
 LDFLAGS=-Libaard -libaard
 VERSION=`date +%Y%m%d`
 Q?=@
