@@ -8,6 +8,7 @@
 #include <string.h>
 #include <time.h>
 #include <dirent.h>
+#include <signal.h>
 
 #include <stdio.h>
 
@@ -31,7 +32,7 @@ struct _childstruct {
     pid_t pid;
     time_t starttime;
     time_t endtime;
-    char status; 
+    char status;
     char name[255];
     char respawn;
     cs *next;
@@ -63,7 +64,7 @@ void cs_startall(){
       pid=fork();
       if (pid==0){
         execlp(cati(SERVICEDIR, p->name, "/run", NULL), "run", (char*)NULL);
-        exit(-1); 
+        exit(-1);
       } else if (pid > 0){
         p->pid=pid;
         p->status=ST_UP;
@@ -141,19 +142,19 @@ void cs_printstat(int fd, cs *key){
   char buf[512];
   switch(key->status){
     case ST_UP:
-      snprintf(buf, 512, "%s (%i): up %i seconds\n",
+      snprintf(buf, 512, "+ %s (%i): up %i seconds\n",
                key->name, key->pid, (int)time(NULL)-(int)key->starttime);
       break;
     case ST_WAITUP:
-      snprintf(buf, 512, "%s (%i): down %i seconds, should be up\n",
+      snprintf(buf, 512, "+ %s (%i): down %i seconds, should be up\n",
                key->name, key->pid, (int)time(NULL)-(int)key->endtime);
       break;
     case ST_DOWN:
-      snprintf(buf, 512, "%s (%i): disabled since %i seconds\n",
+      snprintf(buf, 512, "+ %s (%i): disabled since %i seconds\n",
                key->name, key->pid, (int)time(NULL)-(int)key->endtime);
       break;
     default:
-      snprintf(buf, 512, "%s (%i): %i, start: %i, end: %i\n",
+      snprintf(buf, 512, "+ %s (%i): %i, start: %i, end: %i\n",
                key->name, key->pid, key->status, (int)time(NULL)-(int)key->starttime, (int)time(NULL)-(int)key->endtime);
   }
   __writefd(fd, buf);
@@ -204,13 +205,13 @@ int cs_signal(char *service, int signal){
   memset(&cskey, 0, sizeof(cs));
   strcpy(cskey.name, service);
   if (!cs_find(cskey, &csresult)){
-    //__writefd(outfifo, cati("+ Service ", cskey.name, " enabled\n", NULL)); 
+    //__writefd(outfifo, cati("+ Service ", cskey.name, " enabled\n", NULL));
     if (csresult->pid!=0) return(kill(csresult->pid, signal));
   }
   return -1;
 }
 
-// reads the service directory and creates a cs 
+// reads the service directory and creates a cs
 // entry for each service, with status 2
 int readservices(){
   DIR* dir_ptr;
@@ -226,7 +227,7 @@ int readservices(){
     if (!strcmp(temp->d_name, ".")) continue;
     if (!strcmp(temp->d_name, "..")) continue;
     if (tf(cati(SERVICEDIR, temp->d_name, "/run", NULL))) continue;
-    
+
     memset(&cskey, 0, sizeof(cs));
     cskey.endtime=time(NULL);
     if (!tf(cati(SERVICEDIR, temp->d_name, "/noauto", NULL))) cskey.status=ST_DOWN;
@@ -261,6 +262,13 @@ void sighandle_alarm(){
 
 void sighandle_term(){
   cs_killall();
+}
+
+void writestatus(int status, int fd){
+  if (status==0)
+    __writefd(fd, cati("+\n", NULL));
+  else
+    __writefd(fd, cati("-\n", NULL));
 }
 
 int main(int argc, char **argv){
@@ -305,7 +313,7 @@ int main(int argc, char **argv){
       cs *p;
 
       pid=wait(&status);
-      waitingchilds--;			
+      waitingchilds--;
 
       printf("Waiting childs: %i\n", waitingchilds);
       for (p=cs_storage;p!=NULL;p=p->next){
@@ -313,7 +321,7 @@ int main(int argc, char **argv){
           if (p->status!=ST_DOWN) p->status=ST_WAITUP;
           p->endtime=time(NULL);
           p->pid=0;
-        } 
+        }
       }
       if (waitingchilds>0) goto g_waitingchilds;
     }
@@ -335,12 +343,10 @@ int main(int argc, char **argv){
 
       switch(buf[0]){
         case 'A':
-          cs_signal(optarg, SIGALRM);
-          __writefd(outfifo, cati("\n", NULL));
+          writestatus(cs_signal(optarg, SIGALRM), outfifo);
           break;
         case 'C':
-          cs_signal(optarg, SIGCONT);
-          __writefd(outfifo, cati("\n", NULL));
+          writestatus(cs_signal(optarg, SIGCONT), outfifo);
           break;
         case 'D':
           if (optarg==NULL) break;
@@ -348,22 +354,19 @@ int main(int argc, char **argv){
           strcpy(cskey.name, optarg);
           if (!cs_find(cskey, &csresult)){
             printf("enabling %s\n", cskey.name);
-            __writefd(outfifo, cati("+ Service ", cskey.name, " disabled\n", NULL)); 
+            __writefd(outfifo, cati("+ Service ", cskey.name, " disabled\n", NULL));
             csresult->status=ST_DOWN;
             if (csresult->pid!=0) kill(csresult->pid, SIGTERM);
-          } else __writefd(outfifo, cati("- Service ", cskey.name, " not found\n", NULL)); 
+          } else __writefd(outfifo, cati("- Service ", cskey.name, " not found\n", NULL));
           break;
         case 'H':
-          cs_signal(optarg, SIGHUP);
-          __writefd(outfifo, cati("\n", NULL));
+          writestatus(cs_signal(optarg, SIGHUP), outfifo);
           break;
         case 'I':
-          cs_signal(optarg, SIGINT);
-          __writefd(outfifo, cati("\n", NULL));
+          writestatus(cs_signal(optarg, SIGINT), outfifo);
           break;
         case 'K':
-          cs_signal(optarg, SIGKILL);
-          __writefd(outfifo, cati("\n", NULL));
+          writestatus(cs_signal(optarg, SIGKILL), outfifo);
           break;
         case 'N':
           // add a new service
@@ -371,51 +374,52 @@ int main(int argc, char **argv){
           memset(&cskey, 0, sizeof(cs));
           strcpy(cskey.name, optarg);
           if (!cs_find(cskey, &csresult)) {
-            __writefd(outfifo, cati("e Service ", optarg, " already exists\n", NULL));
+            __writefd(outfifo, cati("- Service ", optarg, " already exists\n", NULL));
             break;
           }
           if (addservice(optarg)==0)
-            __writefd(outfifo, cati("e Service ", optarg, " added\n", NULL));
+            __writefd(outfifo, cati("+ Service ", optarg, " added\n", NULL));
           else
-            __writefd(outfifo, cati("e Service ", optarg, " could not be added\n", NULL));
+            __writefd(outfifo, cati("- Service ", optarg, " could not be added\n", NULL));
+          break;
+        case 'O':
+          writestatus(0, outfifo);
           break;
         case 'P':
-          cs_signal(optarg, SIGSTOP);
-          __writefd(outfifo, cati("\n", NULL));
+          writestatus(cs_signal(optarg, SIGSTOP), outfifo);
           break;
         case 'U': // bring service up
           if (optarg==NULL) break;
           memset(&cskey, 0, sizeof(cs));
           strcpy(cskey.name, optarg);
           if (!cs_find(cskey, &csresult)){
-            __writefd(outfifo, cati("+ Service ", cskey.name, " enabled\n", NULL)); 
+            __writefd(outfifo, cati("+ Service ", cskey.name, " enabled\n", NULL));
             csresult->status=ST_WAITUP;
-          } else __writefd(outfifo, cati("- Service ", cskey.name, " not found\n", NULL)); 
+          } else __writefd(outfifo, cati("- Service ", cskey.name, " not found\n", NULL));
           break;
         case 'S': // get service status
           if (optarg!=NULL){
             if (!strncmp(optarg, "*", 1)) {
               cs_dumpall();
-              __writefd(outfifo, cati("\n", NULL));
+              writestatus(0, outfifo);
             } else {
               memset(&cskey, 0, sizeof(cs));
               strcpy(cskey.name, optarg);
               if (!cs_find(cskey, &csresult)) cs_printstat(outfifo, csresult);
-              else __writefd(outfifo, cati("- Service ", cskey.name, " not found\n", NULL)); 
+              else __writefd(outfifo, cati("- Service ", cskey.name, " not found\n", NULL));
             }
           }
           break;
         case 'T':
-          cs_signal(optarg, SIGTERM);
-          __writefd(outfifo, cati("\n", NULL));
+          writestatus(cs_signal(optarg, SIGTERM), outfifo);
           break;
         case 'X':
           cs_killall();
-          __writefd(outfifo, cati("Shutting down asvm.\n", NULL));
+          __writefd(outfifo, cati("+ Shutting down asvm.\n", NULL));
           exit(0);
           break;
         default:
-          __writefd(outfifo, cati("Unknown command: ", buf, "\n", NULL));
+          __writefd(outfifo, cati("- Unknown command: ", buf, "\n", NULL));
       } // end switch
     }
   } // end for
