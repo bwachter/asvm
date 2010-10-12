@@ -4,9 +4,10 @@ all: $(ALL)
 
 #DIET?=/opt/diet/bin/diet
 CC?=cc
-CFLAGS=-std=c99 -Wall -W -pipe -fomit-frame-pointer -Os -Iibaard/src
+CFLAGS?=-std=c99 -D_GNU_SOURCE -Wall -W -pipe -fomit-frame-pointer -Os 
+CFLAGS+=-Wall -Iibaard/src
 LDFLAGS=-Libaard -libaard
-VERSION=`date +%Y%m%d`
+VERSION?=`date +%Y%m%d`
 Q?=@
 
 #LDFLAGS=-s
@@ -46,6 +47,6 @@ install:
 	$(Q)mkfifo $(DESTDIR)/etc/asvm/in $(DESTDIR)/etc/asvm/out
 
 dist: version.h
-	$(Q)echo "building archive ($(VERSION).tar.bz2)"
-	$(Q)git-archive-all.sh --format tar --prefix $(VERSION)/  $(VERSION).tar
-	$(Q)gzip -f $(VERSION).tar
+	$(Q)echo "building archive (asvm-$(VERSION).tar.bz2)"
+	$(Q)git-archive-all.sh --format tar --prefix asvm-$(VERSION)/  asvm-$(VERSION).tar
+	$(Q)gzip -f asvm-$(VERSION).tar
