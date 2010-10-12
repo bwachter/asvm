@@ -1,7 +1,7 @@
 INSTALL
 -------
 
-The current version of aardmail relies on libaard. An appropriate
+The current version of asvm relies on libaard. An appropriate
 version is included as a git submodule, which you can initialize
 by executing the following command within the source directory:
 

@@ -3,3 +3,6 @@ asvm
 svc
 version.h
 *.tar.gz
+*-stamp
+debian/files
+debian/asvm.*

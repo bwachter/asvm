@@ -1,0 +1,11 @@
+Source: asvm
+Section: user/utilities
+Priority: optional
+Maintainer: Bernd Wachter <bwachter-pkg@lart.info>
+Build-Depends: debhelper (>= 5)
+Standards-Version: 3.7.3
+
+Package: asvm
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: Service monitoring tool

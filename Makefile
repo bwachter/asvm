@@ -38,10 +38,12 @@ clean:
 
 install:
 	$(Q)echo "$@"
+	$(Q)mkdir -p $(DESTDIR)/usr/bin $(DESTDIR)/usr/sbin $(DESTDIR)/etc/asvm/services
 	$(Q)install -m 755 asvm $(DESTDIR)/usr/sbin
 	$(Q)install -m 755 svc $(DESTDIR)/usr/bin
-	$(Q)ln -f -s $(DESTDIR)/usr/bin/svc $(DESTDIR)/usr/bin/svstat
-	$(Q)ln -f -s $(DESTDIR)/usr/bin/svc $(DESTDIR)/usr/bin/svok
+	$(Q)ln -f -s /usr/bin/svc $(DESTDIR)/usr/bin/svstat
+	$(Q)ln -f -s /usr/bin/svc $(DESTDIR)/usr/bin/svok
+	$(Q)mkfifo $(DESTDIR)/etc/asvm/in $(DESTDIR)/etc/asvm/out
 
 dist: version.h
 	$(Q)echo "building archive ($(VERSION).tar.bz2)"
