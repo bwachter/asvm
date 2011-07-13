@@ -27,6 +27,8 @@
 enum status {ST_UNSET, ST_DOWN, ST_UP, ST_WAITUP, ST_ERR};
 typedef struct _childstruct cs;
 int waitingchilds=0;
+char *servicedir;
+//char servicedir[255]="/etc/asvm/servic";
 
 struct _childstruct {
     pid_t pid;
@@ -63,7 +65,7 @@ void cs_startall(){
       logmsg(L_INFO, "ST", "Starting service '", p->name, "'", NULL);
       pid=fork();
       if (pid==0){
-        execlp(cati(SERVICEDIR, p->name, "/run", NULL), "run", (char*)NULL);
+        execlp(cati(servicedir, p->name, "/run", NULL), "run", (char*)NULL);
         exit(-1);
       } else if (pid > 0){
         p->pid=pid;
@@ -218,7 +220,7 @@ int readservices(){
   struct dirent *temp;
   cs cskey;
 
-  if ((dir_ptr=opendir(SERVICEDIR))==NULL){
+  if ((dir_ptr=opendir(servicedir))==NULL){
     perror("Unable to open dir");
     return 0;
   }
@@ -226,11 +228,11 @@ int readservices(){
   for (temp=readdir(dir_ptr); temp!=NULL; temp=readdir(dir_ptr)){
     if (!strcmp(temp->d_name, ".")) continue;
     if (!strcmp(temp->d_name, "..")) continue;
-    if (tf(cati(SERVICEDIR, temp->d_name, "/run", NULL))) continue;
+    if (tf(cati(servicedir, temp->d_name, "/run", NULL))) continue;
 
     memset(&cskey, 0, sizeof(cs));
     cskey.endtime=time(NULL);
-    if (!tf(cati(SERVICEDIR, temp->d_name, "/noauto", NULL))) cskey.status=ST_DOWN;
+    if (!tf(cati(servicedir, temp->d_name, "/noauto", NULL))) cskey.status=ST_DOWN;
     else cskey.status=ST_WAITUP;
     strcpy(cskey.name, temp->d_name);
     cs_additem(&cskey);
@@ -241,7 +243,7 @@ int readservices(){
 int addservice(char* service){
   cs cskey;
 
-  if (!tf(cati(SERVICEDIR, service, "/run", NULL))){
+  if (!tf(cati(servicedir, service, "/run", NULL))){
     memset(&cskey, 0, sizeof(cs));
     cskey.endtime=time(NULL);
     cskey.status=ST_DOWN;
@@ -276,10 +278,19 @@ int main(int argc, char **argv){
   (void) argv;
   int infifo, outfifo;
   cs cskey, *csresult=NULL;
+  char *basedir;
 
   loglevel(4);
+
+  basedir=getenv("ASVM_BASEDIR");
+  if (basedir==NULL){
+    basedir=malloc(strlen(BASEDIR));
+    strcpy(basedir, BASEDIR);
+  }
+
+  cat(&servicedir, basedir, "/services/", NULL);
+
   readservices();
-  cs_startall();
 
   /*
     - read service directory
@@ -290,15 +301,16 @@ int main(int argc, char **argv){
     - listen on fifo for commands to enable/disable childs
   */
 
-  infifo=open(cati(BASEDIR, "/in", NULL), O_RDWR);
+  infifo=open(cati(basedir, "/in", NULL), O_RDWR);
   if (infifo<0) logmsg(L_DEADLY, "MAIN", "Unable to open in FIFO", NULL);
-  outfifo=open(cati(BASEDIR, "/out", NULL), O_RDWR);
+  outfifo=open(cati(basedir, "/out", NULL), O_RDWR);
   if (outfifo<0) logmsg(L_DEADLY, "MAIN", "Unable to open out FIFO", NULL);
-
 
   signal(SIGCHLD, sighandle_child);
   signal(SIGALRM, sighandle_alarm);
   signal(SIGTERM, sighandle_term);
+
+  cs_startall();
 
   struct  pollfd pfd[0];
   char buf[255], optarg[254];

@@ -27,10 +27,17 @@ int rwcon(char *action){
   int infifo, outfifo, i;
   char buf[512];
   char *laction=strdup(action);
+  char *basedir;
 
-  infifo=open(cati(BASEDIR, "/in", NULL), O_RDWR);
+  basedir=getenv("ASVM_BASEDIR");
+  if (basedir==NULL){
+    basedir=malloc(strlen(BASEDIR));
+    strcpy(basedir, BASEDIR);
+  }
+
+  infifo=open(cati(basedir, "/in", NULL), O_RDWR);
   if (infifo<0) logmsg(L_DEADLY, "MAIN", "Unable to open in FIFO", NULL);
-  outfifo=open(cati(BASEDIR, "/out", NULL), O_RDWR);
+  outfifo=open(cati(basedir, "/out", NULL), O_RDWR);
   if (outfifo<0) logmsg(L_DEADLY, "MAIN", "Unable to open out FIFO", NULL);
 
   __writefd(infifo, laction);
