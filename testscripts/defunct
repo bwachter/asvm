@@ -1,0 +1,4 @@
+#!/bin/bash
+# Defunct script, just directly exit
+
+echo "Defunct service $1 starting up"

@@ -1,18 +1,15 @@
 #!/bin/sh
-#
-# $Id: mktestdir,v 1.2 2008-05-09 18:24:20 bwachter Exp $
-# $Log: mktestdir,v $
-# Revision 1.2  2008-05-09 18:24:20  bwachter
-# removed stupid dots
-#
-#
-#
 
 if [ ! -d testscripts ]; then
    echo "Unable to find test scripts"
 fi
 
-BASEDIR=/tmp/etc/asvm
+if [ -z $1 ]; then
+    echo "Usage: $0 basedir"
+    exit 1
+fi
+
+BASEDIR=$1
 SERVICEDIR=$BASEDIR/services
 
 mkdir -p $SERVICEDIR
@@ -21,20 +18,20 @@ mkfifo $BASEDIR/out
 cp -R testscripts $BASEDIR
 
 genservice(){
-	SVTYPE=$1
-	SVNUM=$2
-	for i in `seq $SVNUM`; do
-	    SERVICE=$SERVICEDIR/$SVTYPE$i
-	    mkdir -p $SERVICE
-	    if [ $SVTYPE = "disabled" ]; then
-	       touch $SERVICE/noauto
-	    fi
-	    cat > $SERVICE/run <<EOF
+    SVTYPE=$1
+    SVNUM=$2
+    for i in `seq $SVNUM`; do
+        SERVICE=$SERVICEDIR/$SVTYPE$i
+        mkdir -p $SERVICE
+        if [ $SVTYPE = "disabled" ]; then
+            touch $SERVICE/noauto
+        fi
+        cat > $SERVICE/run <<EOF
 #!/bin/sh
-exec $BASEDIR/testscripts/defunct $i
+exec `readlink -f $BASEDIR/testscripts/$SVTYPE` $i
 EOF
-	    chmod +x $SERVICE/run
-	done
+        chmod +x $SERVICE/run
+    done
 }
 
 # a bunch of scripts exiting immediately
@@ -44,4 +41,10 @@ genservice disabled 2
 # a bunch of scripts running normally
 genservice normal 1
 # a bunch of scripts ignoring SIGTERM
-genservice termign 2 
+#genservice termign 2
+
+export ASVM_BASEDIR=$BASEDIR
+
+./asvm > asvm.log &
+echo "Log is in asvm.log, kill asvm at $! when you're done"
+echo "Do export ASVM_BASEDIR=$BASEDIR before you use svc"

@@ -1,0 +1,9 @@
+#!/bin/bash
+# Normal script, just sleep and wake up occasionally
+
+echo "Normal service $1 starting up"
+
+while true; do
+    sleep 100
+    echo "Normal service $1 waking up"
+done

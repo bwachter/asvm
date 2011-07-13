@@ -1,0 +1,11 @@
+#!/bin/bash
+# Script ignoring SIGTERM
+
+echo "SIGTERM ignoring service $1 starting up"
+
+trap '' TERM
+
+while true; do
+    sleep 1000
+    echo "SIGTERM ignoring service $1 waking up"
+done

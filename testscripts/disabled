@@ -1,0 +1,9 @@
+#!/bin/bash
+# Disabled script. Just like normal script once enabled
+
+echo "Initially disabled service $1 starting up"
+
+while true; do
+    sleep 100
+    echo "Disabled service $1 waking up"
+done
