@@ -3,6 +3,7 @@ ALL=asvm svc
 all: $(ALL)
 
 #DIET?=/opt/diet/bin/diet
+STRIP?=$(CROSS)strip
 CC?=cc
 CFLAGS?=-std=c99 -D_GNU_SOURCE -Wall -W -pipe -fomit-frame-pointer -Os 
 CFLAGS+=-Wall -Iibaard/src
@@ -18,12 +19,12 @@ version.h:
 asvm: ibaard/libibaard.a version.h asvm.o
 	$(Q)echo "LD $@"
 	$(Q)$(DIET) $(CROSS)$(CC) -o $@ $^ $(LDFLAGS)
-	$(Q)$(CROSS)strip $@
+	$(Q)$(STRIP) $@
 
 svc: ibaard/libibaard.a version.h svc.o
 	$(Q)echo "LD $@"
 	$(Q)$(DIET) $(CROSS)$(CC) -o $@ $^ $(LDFLAGS)
-	$(Q)$(CROSS)strip $@
+	$(Q)$(STRIP) $@
 
 %.o: %.c
 	$(Q)echo "CC $@"

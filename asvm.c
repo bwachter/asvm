@@ -25,6 +25,7 @@
 #endif
 
 enum status {ST_UNSET, ST_DOWN, ST_UP, ST_WAITUP, ST_ERR};
+enum limits {LT_MAXNAME=255};
 typedef struct _childstruct cs;
 int waitingchilds=0;
 char *servicedir;
@@ -35,7 +36,7 @@ struct _childstruct {
     time_t starttime;
     time_t endtime;
     char status;
-    char name[255];
+    char name[LT_MAXNAME];
     char respawn;
     cs *next;
 };
@@ -205,7 +206,7 @@ int cs_signal(char *service, int signal){
   if (service==NULL) return -1;
 
   memset(&cskey, 0, sizeof(cs));
-  strcpy(cskey.name, service);
+  strncpy(cskey.name, service, LT_MAXNAME);
   if (!cs_find(cskey, &csresult)){
     //__writefd(outfifo, cati("+ Service ", cskey.name, " enabled\n", NULL));
     if (csresult->pid!=0) return(kill(csresult->pid, signal));
@@ -234,7 +235,7 @@ int readservices(){
     cskey.endtime=time(NULL);
     if (!tf(cati(servicedir, temp->d_name, "/noauto", NULL))) cskey.status=ST_DOWN;
     else cskey.status=ST_WAITUP;
-    strcpy(cskey.name, temp->d_name);
+    strncpy(cskey.name, temp->d_name, LT_MAXNAME);
     cs_additem(&cskey);
   }
   return 0; // FIXME
@@ -247,7 +248,7 @@ int addservice(char* service){
     memset(&cskey, 0, sizeof(cs));
     cskey.endtime=time(NULL);
     cskey.status=ST_DOWN;
-    strcpy(cskey.name, service);
+    strncpy(cskey.name, service, LT_MAXNAME);
     cs_additem(&cskey);
     return 0;
   }
@@ -284,7 +285,7 @@ int main(int argc, char **argv){
 
   basedir=getenv("ASVM_BASEDIR");
   if (basedir==NULL){
-    basedir=malloc(strlen(BASEDIR));
+    basedir=malloc(strlen(BASEDIR)+1);
     strcpy(basedir, BASEDIR);
   }
 
@@ -363,7 +364,7 @@ int main(int argc, char **argv){
         case 'D':
           if (optarg==NULL) break;
           memset(&cskey, 0, sizeof(cs));
-          strcpy(cskey.name, optarg);
+          strncpy(cskey.name, optarg, LT_MAXNAME);
           if (!cs_find(cskey, &csresult)){
             printf("enabling %s\n", cskey.name);
             __writefd(outfifo, cati("+ Service ", cskey.name, " disabled\n", NULL));
@@ -384,7 +385,7 @@ int main(int argc, char **argv){
           // add a new service
           if (optarg==NULL) break;
           memset(&cskey, 0, sizeof(cs));
-          strcpy(cskey.name, optarg);
+          strncpy(cskey.name, optarg, LT_MAXNAME);
           if (!cs_find(cskey, &csresult)) {
             __writefd(outfifo, cati("- Service ", optarg, " already exists\n", NULL));
             break;
@@ -403,7 +404,7 @@ int main(int argc, char **argv){
         case 'U': // bring service up
           if (optarg==NULL) break;
           memset(&cskey, 0, sizeof(cs));
-          strcpy(cskey.name, optarg);
+          strncpy(cskey.name, optarg, LT_MAXNAME);
           if (!cs_find(cskey, &csresult)){
             __writefd(outfifo, cati("+ Service ", cskey.name, " enabled\n", NULL));
             csresult->status=ST_WAITUP;
@@ -416,7 +417,7 @@ int main(int argc, char **argv){
               writestatus(0, outfifo);
             } else {
               memset(&cskey, 0, sizeof(cs));
-              strcpy(cskey.name, optarg);
+              strncpy(cskey.name, optarg, LT_MAXNAME);
               if (!cs_find(cskey, &csresult)) cs_printstat(outfifo, csresult);
               else __writefd(outfifo, cati("- Service ", cskey.name, " not found\n", NULL));
             }
