@@ -5,9 +5,9 @@ all: $(ALL)
 #DIET?=/opt/diet/bin/diet
 STRIP?=$(CROSS)strip
 CC?=cc
-CFLAGS?=-std=c99 -D_GNU_SOURCE -Wall -W -pipe -fomit-frame-pointer -Os 
+CFLAGS?=-std=c99 -D_GNU_SOURCE -Wall -W -pipe -fomit-frame-pointer
 CFLAGS+=-Wall -Iibaard/src
-LDFLAGS=-Libaard -libaard
+LDFLAGS+=-Libaard -libaard
 VERSION?=`date +%Y%m%d`
 Q?=@
 
