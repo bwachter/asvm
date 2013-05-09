@@ -2,7 +2,7 @@ Source: asvm
 Section: user/utilities
 Priority: optional
 Maintainer: Bernd Wachter <bwachter-pkg@lart.info>
-Build-Depends: debhelper (>= 5)
+Build-Depends: debhelper (>= 5), doxygen
 Standards-Version: 3.7.3
 
 Package: asvm
