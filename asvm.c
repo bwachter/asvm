@@ -255,16 +255,18 @@ int addservice(char* service){
   return -1;
 }
 
-void sighandle_child(){
-  waitingchilds++;
-}
-
-void sighandle_alarm(){
-  //cs_startall();
-}
-
-void sighandle_term(){
-  cs_killall();
+void sighandle(int signum){
+  switch(signum){
+    case SIGCHLD:
+      waitingchilds++;
+      break;
+    case SIGALRM:
+      //cs_startall();
+      break;
+    case SIGTERM:
+      cs_killall();
+      break;
+  }
 }
 
 void writestatus(int status, int fd){
@@ -307,9 +309,14 @@ int main(int argc, char **argv){
   outfifo=open(cati(basedir, "/out", NULL), O_RDWR);
   if (outfifo<0) logmsg(L_DEADLY, "MAIN", "Unable to open out FIFO", NULL);
 
-  signal(SIGCHLD, sighandle_child);
-  signal(SIGALRM, sighandle_alarm);
-  signal(SIGTERM, sighandle_term);
+  struct sigaction action;
+  action.sa_handler = sighandle;
+  action.sa_flags   = SA_RESTART;
+  sigemptyset(&action.sa_mask);
+
+  sigaction(SIGCHLD, &action, NULL);
+  sigaction(SIGALRM, &action, NULL);
+  sigaction(SIGTERM, &action, NULL);
 
   cs_startall();
 
