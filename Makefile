@@ -7,7 +7,7 @@ STRIP?=$(CROSS)strip
 CC?=cc
 CFLAGS?=-std=c99 -D_GNU_SOURCE -Wall -W -pipe -fomit-frame-pointer
 CFLAGS+=-Wall -Iibaard/src
-LDFLAGS+=-Libaard -libaard
+LDFLAGS+=-Libaard/lib -libaard
 VERSION?=`date +%Y%m%d`
 Q?=@
 
@@ -16,12 +16,12 @@ version.h:
 	$(Q)echo "$@"
 	$(Q)echo "#define VERSION \"$(VERSION)\"" > version.h
 
-asvm: ibaard/libibaard.a version.h asvm.o
+asvm: ibaard/lib/libibaard.a version.h asvm.o
 	$(Q)echo "LD $@"
 	$(Q)$(DIET) $(CROSS)$(CC) -o $@ $^ $(LDFLAGS)
 	$(Q)$(STRIP) $@
 
-svc: ibaard/libibaard.a version.h svc.o
+svc: ibaard/lib/libibaard.a version.h svc.o
 	$(Q)echo "LD $@"
 	$(Q)$(DIET) $(CROSS)$(CC) -o $@ $^ $(LDFLAGS)
 	$(Q)$(STRIP) $@
@@ -30,7 +30,7 @@ svc: ibaard/libibaard.a version.h svc.o
 	$(Q)echo "CC $@"
 	$(Q)$(DIET) $(CROSS)$(CC) $(CFLAGS) -c $<
 
-ibaard/libibaard.a:
+ibaard/lib/libibaard.a:
 	$(Q)cd ibaard && make DIET="$(DIET)" CROSS="$(CROSS)" CFLAGS="$(CFLAGS)" CC="$(CC)" dep && make
 
 .PHONY: all clean install
