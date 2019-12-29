@@ -11,22 +11,27 @@ LDFLAGS+=-Libaard/lib -libaard
 VERSION?=`date +%Y%m%d`
 Q?=@
 
+ifdef NDK_TARGET
+CFLAGS+=-target $(NDK_TARGET) -D_POSIX_SOURCE=1
+LDFLAGS+=-target $(NDK_TARGET)
+endif
+
 #LDFLAGS=-s
 version.h:
 	$(Q)echo "$@"
 	$(Q)echo "#define VERSION \"$(VERSION)\"" > version.h
 
-asvm: ibaard/lib/libibaard.a version.h asvm.o
+asvm: ibaard/lib/libibaard.a asvm.o
 	$(Q)echo "LD $@"
 	$(Q)$(DIET) $(CROSS)$(CC) -o $@ $^ $(LDFLAGS)
 	$(Q)$(STRIP) $@
 
-svc: ibaard/lib/libibaard.a version.h svc.o
+svc: ibaard/lib/libibaard.a svc.o
 	$(Q)echo "LD $@"
 	$(Q)$(DIET) $(CROSS)$(CC) -o $@ $^ $(LDFLAGS)
 	$(Q)$(STRIP) $@
 
-%.o: %.c
+%.o: %.c version.h
 	$(Q)echo "CC $@"
 	$(Q)$(DIET) $(CROSS)$(CC) $(CFLAGS) -c $<
 
