@@ -1,0 +1,41 @@
+* asvm                                                                :TOC_4:
+  - [[#introduction][Introduction]]
+  - [[#installation][Installation]]
+
+** Introduction
+
+asvm is a simple service manager, inspired by [[https://cr.yp.to/daemontools.html][daemontools.]] Unlike daemontools with multiple supervise processes asvm only has a single process monitoring all started daemons.
+
+The included svc program follows the usage of the one of the same name [[https://cr.yp.to/daemontools/svc.html][included in daemontools]]. [[https://cr.yp.to/daemontools/svok.html][svok]] and [[https://cr.yp.to/daemontools/svstat.html][svstat]] are not required due to the different architecture, but provided for compatibility for replacing an existing daemontools installation.
+
+** Installation
+
+The current version of asvm requires [[https://github.com/bwachter/ibaard][ibaard]]. An appropriate version is included as a git submodule, which you can initialise by executing the following command within the source directory:
+
+#+BEGIN_SRC bash
+git submodule update --init
+#+END_SRC bash
+
+If you already have the initialised submodule, but would like to jump to a newer release execute the above command without the --init
+
+If you're building from a release tarball a version of libaard is already included.
+
+Now have a look at config.h. This file includes configurations for the location of control fifos and service directories. Adjust if required.
+
+You can now start the build process by just typing `make'. This will build both libibaard and the asvm programs. You can influence the build process by setting some variables:
+
+- Q: Set to empty for verbose build
+- CC: C-compiler, if not cc
+- CROSS: Prefix for cross toolchain
+- DIET: diet wrapper for [[https://www.fefe.de/dietlibc/][diet libc]] builds
+
+For example, `make Q= CROSS=arm-linux-' will do a verbose build for Linux/ARM. All variables are passed through to libibaard, of course.
+
+You can install the programs by typing `make install'. You can set a installation prefix with DESTDIR. Installed programs are:
+
+- $(DESTDIR)/usr/sbin/asvm
+- $(DESTDIR)/usr/bin/svc
+- $(DESTDIR)/usr/bin/svok -> svc
+- $(DESTDIR)/usr/bin/svstat -> svc
+
+Links to svok/svstat are provided in case you're using asvm as drop-in replacement for djbs daemontools.
